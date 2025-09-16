@@ -1,42 +1,57 @@
-require("dotenv").config();
+// app.js
+require("dotenv").config(); // <- load .env first
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const app = express();
-const port = process.env.PORT || 5000;
-const authRoute = require("./routes/auth");
-const allowedOrigins = process.env.CORS_ORIGIN.split(",");
 
+const authRoute = require("./routes/auth");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Allow JSON + urlencoded bodies
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// CORS - allow frontend origin from .env, fallback to localhost:5173
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg =
-          "The CORS policy for this site does not allow access to specified origin";
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
-    },
-    credentials: true,
+    origin:
+      process.env.CORS_ORIGIN || "https://leadway-frontend-yqdj.vercel.app/",
+    // credentials: true, // uncomment if you use cookies/auth that require credentials
   })
 );
 
-app.use(express.json());
+// Routes
 app.use("/api/auth", authRoute);
 
+// Basic health route
+app.get("/", (req, res) => res.send("API running"));
+
+// Start function
 const start = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URL);
+    await mongoose.connect(process.env.MONGO_URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
     console.log("Database connected");
 
-    app.listen(port, () => {
-      console.log(`server is running on PORT ${port}`);
+    const server = app.listen(PORT, () => {
+      console.log(`Server is running on PORT ${PORT}`);
+    });
+
+    // Graceful shutdown
+    process.on("SIGINT", async () => {
+      console.log("SIGINT received. Closing server and DB connection...");
+      await mongoose.disconnect();
+      server.close(() => process.exit(0));
     });
   } catch (err) {
-    console.error(err);
-    console.log("unable to connect");
+    console.error("Startup error:", err);
+    process.exit(1);
   }
 };
 

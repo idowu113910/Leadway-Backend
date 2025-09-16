@@ -81,7 +81,7 @@ router.post(
 
       await newUser.save();
 
-      const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+      const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
         // Payload → { email } (so the token is linked to this user’s email).
         // Secret → process.env.JWT_SECRET (your secret key from .env).
         expiresIn: "1h", // Expiry → "1h" means the token expires after 1 hour.
@@ -132,7 +132,7 @@ router.get("/verify", async (req, res) => {
 
     const user = await User.findOneAndUpdate(
       // It searches the database for a user with the decoded email.
-      { email: decoded.email },
+      { _id: decoded.id },
       { verified: true }, // If found, it updates verified: true.
       { new: true } // { new: true } means it returns the updated user document, not the old one.
     );
@@ -197,6 +197,11 @@ router.post(
         message: "Login Successful", // message: confirmation of login
         accessToken, // accessToken: used for authorization headers on protected routes
         refreshToken, // refreshToken: stored (often in httpOnly cookie or localStorage) for refreshing access tokens
+        user: {
+          id: existingUser._id,
+          fullName: existingUser.fullName,
+          verified: existingUser.verified,
+        },
       });
     } catch (err) {
       console.error(err);

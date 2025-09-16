@@ -25,6 +25,10 @@ const authenticate = (req, res, next) => {
   } catch (err) {
     return res.status(403).json({ message: "Invalid or expired token" }); // If jwt.verify() failed, the user gets a 403 Forbidden response.
   }
+
+  if (err.name === "TokenExpiredError") {
+    return res.status(401).json({ message: "Token has expired" });
+  }
 };
 
 module.exports = authenticate;

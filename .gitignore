@@ -1,21 +1,5 @@
 # Node
-node_modules/
-npm-debug.log
-yarn-error.log
-
-# Environment
+/node_modules
 .env
-.env.local
-.env.*.local
 
-# Build outputs
-/dist
-/build
 
-# Frontend deps
-/frontend/node_modules/
-
-# OS / editor
-.DS_Store
-.vscode/
-.idea/
