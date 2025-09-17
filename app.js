@@ -1,5 +1,4 @@
-// app.js
-require("dotenv").config(); // <- load .env first
+require("dotenv").config(); // Load environment variables first
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -14,12 +13,23 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS - allow frontend origin from .env, fallback to localhost:5173
+// CORS - allow multiple origins (local + deployed frontend)
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend (Vite)
+  process.env.CORS_ORIGIN || "https://leadway-frontend-yqdj.vercel.app", // deployed frontend, NO trailing slash
+];
+
 app.use(
   cors({
-    origin:
-      process.env.CORS_ORIGIN || "https://leadway-frontend-yqdj.vercel.app/",
-    // credentials: true, // uncomment if you use cookies/auth that require credentials
+    origin: function (origin, callback) {
+      // allow requests with no origin (like Postman) or if origin is in allowedOrigins
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
+    credentials: true, // enable if you plan to use cookies/auth headers
   })
 );
 
@@ -29,14 +39,13 @@ app.use("/api/auth", authRoute);
 // Basic health route
 app.get("/", (req, res) => res.send("API running"));
 
-// Start function
+// Start server function
 const start = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URL, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-
     console.log("Database connected");
 
     const server = app.listen(PORT, () => {
@@ -46,6 +55,12 @@ const start = async () => {
     // Graceful shutdown
     process.on("SIGINT", async () => {
       console.log("SIGINT received. Closing server and DB connection...");
+      await mongoose.disconnect();
+      server.close(() => process.exit(0));
+    });
+
+    process.on("SIGTERM", async () => {
+      console.log("SIGTERM received. Closing server and DB connection...");
       await mongoose.disconnect();
       server.close(() => process.exit(0));
     });
