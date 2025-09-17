@@ -88,7 +88,7 @@ router.post(
         // This token is proof that the email belongs to the user.
       });
 
-      const verificationUrl = `${process.env.BACKEND_URL}/api/auth/verify?token=${token}`; // Creates a clickable URL that points to your frontend (e.g. http://localhost:5173/verify?token=...).
+      const verificationUrl = `${process.env.FRONTEND_URL}/api/auth/verify?token=${token}`; // Creates a clickable URL that points to your frontend (e.g. http://localhost:5173/verify?token=...).
       // token=${token} attaches the JWT as a query parameter.
       // When the user clicks the link → your frontend will capture this token and send it to your backend /verify route.
       // This is how you tie email verification back to your system
