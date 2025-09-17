@@ -144,7 +144,7 @@ router.get("/verify", async (req, res) => {
     const frontendURL =
       process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app";
 
-    return res.redirect(`${frontendURL}/verifiedSuccess?email=${user.email}`); // If everything works → success response ✅. At this point, the user is officially verified.
+    return res.redirect(`${frontendURL}/verifiedsuccess?email=${user.email}`); // If everything works → success response ✅. At this point, the user is officially verified.
   } catch (err) {
     console.error("Verify error:", err);
     res.status(400).json({ message: "Invalid or expired token" }); // If anything goes wrong (expired token, invalid signature, DB error, etc.) → return 400 Invalid or expired token.
