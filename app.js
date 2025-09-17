@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS - allow multiple origins (local + deployed frontend)
 const allowedOrigins = [
   "http://localhost:5173", // local frontend (Vite)
-  process.env.CORS_ORIGIN || "*", // deployed frontend, NO trailing slash
+  process.env.CORS_ORIGIN || "https://leadway-frontend-yqdj.vercel.app", // deployed frontend, NO trailing slash
 ];
 
 app.use(
