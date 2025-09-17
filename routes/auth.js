@@ -88,7 +88,7 @@ router.post(
         // This token is proof that the email belongs to the user.
       });
 
-      const verificationUrl = `${process.env.FRONTEND_URL}/verify?token=${token}`; // Creates a clickable URL that points to your frontend (e.g. http://localhost:5173/verify?token=...).
+      const verificationUrl = `${process.env.BACKEND_URL}/api/auth/verify?token=${token}`; // Creates a clickable URL that points to your frontend (e.g. http://localhost:5173/verify?token=...).
       // token=${token} attaches the JWT as a query parameter.
       // When the user clicks the link → your frontend will capture this token and send it to your backend /verify route.
       // This is how you tie email verification back to your system
@@ -141,7 +141,10 @@ router.get("/verify", async (req, res) => {
       return res.status(400).json({ message: "User not found" }); // If no user was found with that email → return 400 User not found.
     }
 
-    res.json({ message: "Email verified successfully! You can now log in." }); // If everything works → success response ✅. At this point, the user is officially verified.
+    const frontendURL =
+      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app";
+
+    return res.redirect(`${frontendURL}/verifiedSuccess?email=${user.email}`); // If everything works → success response ✅. At this point, the user is officially verified.
   } catch (err) {
     console.error("Verify error:", err);
     res.status(400).json({ message: "Invalid or expired token" }); // If anything goes wrong (expired token, invalid signature, DB error, etc.) → return 400 Invalid or expired token.
