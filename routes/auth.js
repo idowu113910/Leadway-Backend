@@ -141,10 +141,43 @@ router.get("/verify", async (req, res) => {
       return res.status(400).json({ message: "User not found" }); // If no user was found with that email → return 400 User not found.
     }
 
-    const frontendURL =
-      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app";
+    const frontendURL = (
+      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app"
+    ).replace(/\/+$/, "");
 
-    return res.redirect(`${frontendURL}/verifiedsuccess?email=${user.email}`); // If everything works → success response ✅. At this point, the user is officially verified.
+    // Option: send an HTML page that auto-navigates using client-side JS
+    return res.send(`<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <title>Email Verified</title>
+          <style>
+            body { font-family: Arial, Helvetica, sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; }
+            .card { text-align:center; max-width:480px; padding:24px; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,0.08); }
+            a.button { display:inline-block; margin-top:16px; padding:10px 18px; background:#10b981; color:white; text-decoration:none; border-radius:6px; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>✅ Email Verified</h1>
+            <p>Your account (${user.email}) has been verified successfully.</p>
+            <p>If you are not redirected automatically, click the button below.</p>
+            <a class="button" href="${frontendURL}/verifiedsuccess?email=${encodeURIComponent(
+      user.email
+    )}">Go to verified page</a>
+          </div>
+
+          <script>
+            // Auto-redirect after short delay (client-side redirect, not res.redirect)
+            setTimeout(function() {
+              window.location.href = "${frontendURL}/verifiedsuccess?email=${encodeURIComponent(
+      user.email
+    )}";
+            }, 1500);
+          </script>
+        </body>
+      </html>`);
   } catch (err) {
     console.error("Verify error:", err);
     res.status(400).json({ message: "Invalid or expired token" }); // If anything goes wrong (expired token, invalid signature, DB error, etc.) → return 400 Invalid or expired token.
