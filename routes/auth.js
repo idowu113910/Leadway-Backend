@@ -88,7 +88,7 @@ router.post(
         // This token is proof that the email belongs to the user.
       });
 
-      const verificationUrl = `${process.env.BACKEND_URL}/api/auth/verify?token=${token}`; // Creates a clickable URL that points to your frontend (e.g. http://localhost:5173/verify?token=...).
+      const verificationUrl = `${process.env.FRONTEND_URL}/api/auth/verify?token=${token}`; // Creates a clickable URL that points to your frontend (e.g. http://localhost:5173/verify?token=...).
       // token=${token} attaches the JWT as a query parameter.
       // When the user clicks the link → your frontend will capture this token and send it to your backend /verify route.
       // This is how you tie email verification back to your system
@@ -118,36 +118,43 @@ router.post(
 //================= VERIFY ROUTE FOR EMAIL VERIFICATION AFTER SIGNING UP. When a user clicks the email verification link (that was sent during signup), this route gets hit.
 // It checks the token, and if valid, marks the user as verified in your MongoDB. ===========================
 
+// backend route: GET /api/auth/verify?token=...
 router.get("/verify", async (req, res) => {
-  // This route listens for GET /verify?token=xxxx
   try {
-    const { token } = req.query; // It grabs the token from the query string in the URL (the ?token=xxxx).
+    const { token } = req.query;
     if (!token) {
-      return res.status(400).json({ message: "Verification token missing" }); // If no token was provided, respond with 400 Bad Request.  Example: someone visits /verify without ?token=....
+      return res
+        .status(400)
+        .json({ success: false, message: "Verification token missing" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // jwt.verify checks if the token is:
-    // 1. Signed with the correct secret (JWT_SECRET in your .env).
-    // 2. Still valid (not expired). If it passes, you get back the payload you originally put inside the token (in your signup route, it was {
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      console.error("JWT verify error:", err);
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired token" });
+    }
 
     const user = await User.findOneAndUpdate(
-      // It searches the database for a user with the decoded email.
       { _id: decoded.id },
-      { verified: true }, // If found, it updates verified: true.
-      { new: true } // { new: true } means it returns the updated user document, not the old one.
+      { verified: true },
+      { new: true }
     );
 
     if (!user) {
-      return res.status(400).json({ message: "User not found" }); // If no user was found with that email → return 400 User not found.
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
-    const frontendURL =
-      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app";
-
-    return res.redirect(`${frontendURL}/verifiedsuccess?email=${user.email}`); // If everything works → success response ✅. At this point, the user is officially verified.
+    // Success: return JSON so frontend (axios) can handle redirect/navigation
+    return res.json({ success: true, email: user.email });
   } catch (err) {
     console.error("Verify error:", err);
-    res.status(400).json({ message: "Invalid or expired token" }); // If anything goes wrong (expired token, invalid signature, DB error, etc.) → return 400 Invalid or expired token.
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
