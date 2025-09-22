@@ -81,7 +81,7 @@ router.post(
       });
 
       const verificationUrl = `${
-        process.env.BACKEND_URL || "http://localhost:5000"
+        process.env.BACKEND_URL || "https://leadway-backend-1.onrender.com"
       }/api/auth/verify-email/${token}`;
 
       await transporter.sendMail({
