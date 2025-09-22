@@ -1,4 +1,4 @@
-require("dotenv").config(); // Load environment variables first
+require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -7,39 +7,42 @@ const cors = require("cors");
 const authRoute = require("./routes/auth");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
-// Allow JSON + urlencoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS - allow multiple origins (local + deployed frontend)
+// CORS - Multiple origins for both local and production
 const allowedOrigins = [
-  // local frontend (Vite)
-  process.env.CORS_ORIGIN || "https://leadway-frontend-yqdj.vercel.app", // deployed frontend, NO trailing slash
-];
+  "http://localhost:5173", // Vite default port
+  "https://leadway-frontend-yqdj.vercel.app", // Your deployed frontend
+  process.env.FRONTEND_URL, // Additional environment variable
+].filter(Boolean); // Remove undefined values
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (like Postman) or if origin is in allowedOrigins
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (Postman, mobile apps, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log(`CORS blocked origin: ${origin}`);
         callback(new Error(`Origin ${origin} not allowed by CORS`));
       }
     },
-    credentials: true, // enable if you plan to use cookies/auth headers
+    credentials: true,
   })
 );
 
 // Routes
 app.use("/api/auth", authRoute);
 
-// Basic health route
 app.get("/", (req, res) => res.send("API running"));
 
-// Start server function
 const start = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URL, {
@@ -52,7 +55,6 @@ const start = async () => {
       console.log(`Server is running on PORT ${PORT}`);
     });
 
-    // Graceful shutdown
     process.on("SIGINT", async () => {
       console.log("SIGINT received. Closing server and DB connection...");
       await mongoose.disconnect();
