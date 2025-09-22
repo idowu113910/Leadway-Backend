@@ -126,8 +126,8 @@ router.get("/verify-email/:token", async (req, res) => {
               <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Verification token is missing.</p>
               <a href="${
                 process.env.FRONTEND_URL ||
-                "https://leadway-frontend-yqdj.vercel.app"
-              }/login" 
+                "https://leadway-frontend-yqdj.vercel.app/login"
+              }" 
                  style="background: #007bff; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 5px; display: inline-block; 
                         font-weight: bold;">
@@ -161,8 +161,8 @@ router.get("/verify-email/:token", async (req, res) => {
               <p style="color: #666; font-size: 16px; margin-bottom: 30px;">The user associated with this token could not be found.</p>
               <a href="${
                 process.env.FRONTEND_URL ||
-                "https://leadway-frontend-yqdj.vercel.app"
-              }/login" 
+                "https://leadway-frontend-yqdj.vercel.app/login"
+              }" 
                  style="background: #007bff; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 5px; display: inline-block; 
                         font-weight: bold;">
