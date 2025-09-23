@@ -189,7 +189,7 @@ router.get("/verify-email/:token", async (req, res) => {
             <h2 style="color: #28a745; margin-bottom: 20px;">✅ Email Verified Successfully!</h2>
             <p style="color: #666; font-size: 16px; margin-bottom: 10px;">Welcome, <strong>${user.fullName}</strong>!</p>
             <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Your account has been verified successfully. You can now login to your account.</p>
-            <a href="${frontendURL}/login?verified=true&email=${user.fullName}" 
+            <a href="${frontendURL}/login?verified=true&email=${user.email}" 
                style="background: #28a745; color: white; padding: 12px 24px; 
                       text-decoration: none; border-radius: 5px; display: inline-block; 
                       font-weight: bold; transition: background-color 0.3s;"
