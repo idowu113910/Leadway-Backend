@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS - Multiple origins for both local and production
 const allowedOrigins = [
-  "http://localhost:5173", // Vite default port
+  "http://localhost:5177", // Vite default port
   "https://leadway-frontend-yqdj.vercel.app", // Your deployed frontend
   process.env.FRONTEND_URL, // Additional environment variable
 ].filter(Boolean); // Remove undefined values
