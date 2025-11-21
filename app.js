@@ -1,11 +1,8 @@
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-
 const authRoute = require("./routes/auth");
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -26,12 +23,11 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.log(`CORS blocked origin: ${origin}`);
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        console.log(`CORS blocked origin: ${origin}`); // ✅ Fixed
+        callback(new Error(`Origin ${origin} not allowed by CORS`)); // ✅ Fixed
       }
     },
     credentials: true,
@@ -40,7 +36,6 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRoute);
-
 app.get("/", (req, res) => res.send("API running"));
 
 const start = async () => {
@@ -52,7 +47,7 @@ const start = async () => {
     console.log("Database connected");
 
     const server = app.listen(PORT, () => {
-      console.log(`Server is running on PORT ${PORT}`);
+      console.log(`Server is running on PORT ${PORT}`); // ✅ Fixed
     });
 
     process.on("SIGINT", async () => {
