@@ -10,11 +10,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS - Multiple origins for both local and production
-const allowedOrigins = [
-  "http://localhost:5175", // Vite default port
-  "https://leadway-frontend-yqdj.vercel.app", // Your deployed frontend
-  process.env.FRONTEND_URL, // Additional environment variable
-].filter(Boolean); // Remove undefined values
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
@@ -31,7 +30,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
 // Routes
