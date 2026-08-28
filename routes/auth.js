@@ -85,10 +85,15 @@ router.post(
         process.env.BACKEND_URL || "https://leadway-backend-1.onrender.com"
       }/api/auth/verify-email/${token}`;
 
-      // Dispatch Brevo email in background (non-blocking)
-      sendVerificationEmail(email, fullName, verificationUrl);
+      // Send verification email and actually wait for/catch the result
+      try {
+        await sendVerificationEmail(email, fullName, verificationUrl);
+        console.log("Verification email sent to:", email);
+      } catch (emailErr) {
+        console.error("Failed to send verification email:", emailErr);
+      }
 
-      // Return immediate response to user
+      // Return response to user
       return res.status(201).json({
         message:
           "Signup successful! Please check your email to verify your account",
