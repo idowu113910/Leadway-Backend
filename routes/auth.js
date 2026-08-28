@@ -347,6 +347,8 @@ router.get("/profile", authenticate, async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
+
+
 module.exports = router;
 
 //Here’s the breakdown:
