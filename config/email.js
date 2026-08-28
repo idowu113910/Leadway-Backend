@@ -1,25 +1,43 @@
-const nodemailer = require("nodemailer");
+// email.js
+const sendVerificationEmail = async (userEmail, fullName, verificationUrl) => {
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "api-key": process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "Leadway Assurance",
+          email: process.env.EMAIL_USER, // Your Brevo account email
+        },
+        to: [
+          {
+            email: userEmail,
+            name: fullName,
+          },
+        ],
+        subject: "Verify Your Email - Leadway",
+        htmlContent: `
+          <h2>Welcome, ${fullName}!</h2>
+          <p>Verify your email address to complete the signup and login into your account.</p>
+          <p>This link <b>expires in 1 hour</b>.</p>
+          <p>Press <a href="${verificationUrl}">here</a> to proceed.</p>
+        `,
+      }),
+    });
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // Uses SSL on port 465 to prevent timeouts on host platforms like Render
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Make sure to use your NEW App Password here!
-  },
-  tls: {
-    rejectUnauthorized: false, // Prevents failure on self-signed cert checks in cloud containers
-  },
-});
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("SMTP Connection Error:", error);
-  } else {
-    console.log("Ready for messages");
-    console.log(success);
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Brevo API Error:", data);
+    } else {
+      console.log("Email sent successfully via Brevo:", data.messageId);
+    }
+  } catch (error) {
+    console.error("Failed to send email via Brevo:", error.message);
   }
-});
+};
 
-module.exports = transporter;
+module.exports = sendVerificationEmail;

@@ -19,19 +19,27 @@ const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { id: user._id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
+    { expiresIn: process.env.JWT_EXPIRES_IN },
   );
 
   const refreshToken = jwt.sign(
     { id: user._id, email: user.email },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN },
   );
 
   return { accessToken, refreshToken };
 };
 
 // ========== SIGN UP ==============
+const express = require("express");
+const router = express.Router();
+const { body, validationResult } = require("express-validator");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User"); // Adjust path if needed
+const sendVerificationEmail = require("../path/to/email"); // Adjust path to your email.js file
+
 router.post(
   "/signup",
 
@@ -56,17 +64,17 @@ router.post(
     const { fullName, email, password } = req.body;
 
     try {
-      // Check if user exists
+      // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      // Hash the password
+      // Hash password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Create new user
+      // Save user
       const newUser = new User({
         fullName,
         email,
@@ -76,6 +84,7 @@ router.post(
 
       await newUser.save();
 
+      // Generate verification token
       const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
@@ -84,28 +93,21 @@ router.post(
         process.env.BACKEND_URL || "https://leadway-backend-1.onrender.com"
       }/api/auth/verify-email/${token}`;
 
-      await transporter.sendMail({
-        from: `"Leadway" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Verify Your Email",
-        html: `
-          <h2>Welcome, ${fullName}!</h2>
-          <p>Verify your email address to complete the signup and login into your account.</p>
-          <p>This link <b>expires in 1 hour</b>.</p>
-          <p>Press <a href="${verificationUrl}">here</a> to proceed.</p>
-        `,
-      });
+      // Dispatch Brevo email in background (non-blocking)
+      sendVerificationEmail(email, fullName, verificationUrl);
 
-      res.status(201).json({
+      // Return immediate response to user
+      return res.status(201).json({
         message:
           "Signup successful! Please check your email to verify your account",
       });
     } catch (err) {
       console.error("Signup error:", err);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
+
 //================= VERIFY ROUTE FOR EMAIL VERIFICATION AFTER SIGNING UP. When a user clicks the email verification link (that was sent during signup), this route gets hit.
 // It checks the token, and if valid, marks the user as verified in your MongoDB. ===========================
 
@@ -144,7 +146,7 @@ router.get("/verify-email/:token", async (req, res) => {
     const user = await User.findOneAndUpdate(
       { _id: decoded.id },
       { verified: true },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
@@ -293,7 +295,7 @@ router.post(
       console.error("Signin error:", err);
       res.status(500).json({ message: "Server Error" });
     }
-  }
+  },
 );
 
 // ================= REFRESH NEW TOKEN ==================
@@ -319,11 +321,11 @@ router.post("/refresh", (req, res) => {
         // Creates a brand new access token with:
         { id: userData.id, email: userData.email }, // id + email from the refresh token.
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
+        { expiresIn: process.env.JWT_EXPIRES_IN },
       );
 
       res.json({ accessToken }); // Sends the new token back to the client. Client replaces the old expired access token with this new one.
-    }
+    },
   );
 }); // So, the refresh route is like a bridge to keep users logged in without forcing them to type their email/password every time the short access token dies.
 
