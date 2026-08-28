@@ -5,7 +5,7 @@ const router = express.Router(); // creates an Express Router object so you can 
 const { body, validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const authenticate = require("../middleware/authMiddleware");
-const transporter = require("../config/email");
+const sendVerificationEmail = require("../config/email");
 
 //Access Token → used in the frontend to access protected routes (like /profile, /dashboard).
 // Expiry ensures security (if stolen, it’s only valid for a short time).
@@ -32,14 +32,6 @@ const generateTokens = (user) => {
 };
 
 // ========== SIGN UP ==============
-const express = require("express");
-const router = express.Router();
-const { body, validationResult } = require("express-validator");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User"); // Adjust path if needed
-const sendVerificationEmail = require("../path/to/email"); // Adjust path to your email.js file
-
 router.post(
   "/signup",
 
@@ -347,7 +339,6 @@ router.get("/profile", authenticate, async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
-
 
 module.exports = router;
 
