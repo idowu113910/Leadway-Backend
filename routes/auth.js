@@ -19,13 +19,13 @@ const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { id: user._id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
+    { expiresIn: process.env.JWT_EXPIRES_IN },
   );
 
   const refreshToken = jwt.sign(
     { id: user._id, email: user.email },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN },
   );
 
   return { accessToken, refreshToken };
@@ -101,10 +101,16 @@ router.post(
           "Signup successful! Please check your email to verify your account",
       });
     } catch (err) {
-      console.error("Signup error:", err);
-      res.status(500).json({ message: "Server error" });
+      console.error("SIGNUP ERROR:", err);
+      console.error("ERROR MESSAGE:", err.message);
+      console.error("ERROR STACK:", err.stack);
+
+      res.status(500).json({
+        message: "Server error",
+        error: err.message,
+      });
     }
-  }
+  },
 );
 //================= VERIFY ROUTE FOR EMAIL VERIFICATION AFTER SIGNING UP. When a user clicks the email verification link (that was sent during signup), this route gets hit.
 // It checks the token, and if valid, marks the user as verified in your MongoDB. ===========================
@@ -144,7 +150,7 @@ router.get("/verify-email/:token", async (req, res) => {
     const user = await User.findOneAndUpdate(
       { _id: decoded.id },
       { verified: true },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
@@ -293,7 +299,7 @@ router.post(
       console.error("Signin error:", err);
       res.status(500).json({ message: "Server Error" });
     }
-  }
+  },
 );
 
 // ================= REFRESH NEW TOKEN ==================
@@ -319,11 +325,11 @@ router.post("/refresh", (req, res) => {
         // Creates a brand new access token with:
         { id: userData.id, email: userData.email }, // id + email from the refresh token.
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
+        { expiresIn: process.env.JWT_EXPIRES_IN },
       );
 
       res.json({ accessToken }); // Sends the new token back to the client. Client replaces the old expired access token with this new one.
-    }
+    },
   );
 }); // So, the refresh route is like a bridge to keep users logged in without forcing them to type their email/password every time the short access token dies.
 
