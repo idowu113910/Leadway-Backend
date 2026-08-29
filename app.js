@@ -11,7 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS - Multiple origins for both local and production
 const allowedOrigins = [
-  "https://leadway-frontend-yqdj.vercel.app",
+  "http://localhost:5173/",
   ...(process.env.CORS_ORIGIN || "")
     .split(",")
     .map((o) => o.trim().replace(/\/$/, "")) // Remove trailing slashes

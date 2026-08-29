@@ -1,19 +1,11 @@
-const express = require("express"); // your web framework for handling routes and requests.
-const bcrypt = require("bcryptjs"); // library used to hash passwords so they aren’t stored in plain text.
-const User = require("../models/user"); // the User model (from models/user.js) that represents users in your MongoDB database.
-const router = express.Router(); // creates an Express Router object so you can define routes separately and export them.
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const User = require("../models/user");
+const router = express.Router();
 const { body, validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const authenticate = require("../middleware/authMiddleware");
-const sendVerificationEmail = require("../config/email");
-
-//Access Token → used in the frontend to access protected routes (like /profile, /dashboard).
-// Expiry ensures security (if stolen, it’s only valid for a short time).
-// Refresh Token → used to silently get a new access token when the old one expires.
-// Also has an expiry (longer), so the user doesn’t have to log in every hour.
-
-// Access token = 🔑 door key that expires quickly
-// Refresh token = 🏠 master key to get a new door key when the old one expires
+const transporter = require("../config/email");
 
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
@@ -56,17 +48,14 @@ router.post(
     const { fullName, email, password } = req.body;
 
     try {
-      // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      // Hash password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Save user
       const newUser = new User({
         fullName,
         email,
@@ -76,7 +65,6 @@ router.post(
 
       await newUser.save();
 
-      // Generate verification token
       const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
@@ -85,34 +73,33 @@ router.post(
         process.env.BACKEND_URL || "https://leadway-backend-1.onrender.com"
       }/api/auth/verify-email/${token}`;
 
-      // Send verification email and actually wait for/catch the result
-      try {
-        await sendVerificationEmail(email, fullName, verificationUrl);
-        console.log("Verification email sent to:", email);
-      } catch (emailErr) {
-        console.error("Failed to send verification email:", emailErr);
-      }
+      await transporter.sendMail({
+        from: `"Leadway" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Verify Your Email",
+        html: `
+          <h2>Welcome, ${fullName}!</h2>
+          <p>Verify your email address to complete the signup and login into your account.</p>
+          <p>This link <b>expires in 1 hour</b>.</p>
+          <p>Press <a href="${verificationUrl}">here</a> to proceed.</p>
+        `,
+      });
 
-      // Return response to user
-      return res.status(201).json({
+      res.status(201).json({
         message:
           "Signup successful! Please check your email to verify your account",
       });
     } catch (err) {
       console.error("Signup error:", err);
-      return res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error" });
     }
   },
 );
-
-//================= VERIFY ROUTE FOR EMAIL VERIFICATION AFTER SIGNING UP. When a user clicks the email verification link (that was sent during signup), this route gets hit.
-// It checks the token, and if valid, marks the user as verified in your MongoDB. ===========================
 
 router.get("/verify-email/:token", async (req, res) => {
   try {
     const { token } = req.params;
     if (!token) {
-      // Return HTML error page instead of JSON
       return res.status(400).send(`
         <html>
           <head>
@@ -125,8 +112,8 @@ router.get("/verify-email/:token", async (req, res) => {
               <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Verification token is missing.</p>
               <a href="${
                 process.env.FRONTEND_URL ||
-                "https://leadway-frontend-yqdj.vercel.app/login"
-              }" 
+                "https://leadway-frontend-yqdj.vercel.app/"
+              }login" 
                  style="background: #007bff; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 5px; display: inline-block; 
                         font-weight: bold;">
@@ -147,7 +134,6 @@ router.get("/verify-email/:token", async (req, res) => {
     );
 
     if (!user) {
-      // Return HTML error page instead of JSON
       return res.status(400).send(`
         <html>
           <head>
@@ -160,8 +146,8 @@ router.get("/verify-email/:token", async (req, res) => {
               <p style="color: #666; font-size: 16px; margin-bottom: 30px;">The user associated with this token could not be found.</p>
               <a href="${
                 process.env.FRONTEND_URL ||
-                "https://leadway-frontend-yqdj.vercel.app/login"
-              }" 
+                "https://leadway-frontend-yqdj.vercel.app/"
+              }login" 
                  style="background: #007bff; color: white; padding: 12px 24px; 
                         text-decoration: none; border-radius: 5px; display: inline-block; 
                         font-weight: bold;">
@@ -174,9 +160,8 @@ router.get("/verify-email/:token", async (req, res) => {
     }
 
     const frontendURL =
-      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app";
+      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app/";
 
-    // Replace redirect with HTML success page
     return res.send(`
       <html>
         <head>
@@ -188,7 +173,7 @@ router.get("/verify-email/:token", async (req, res) => {
             <h2 style="color: #28a745; margin-bottom: 20px;">✅ Email Verified Successfully!</h2>
             <p style="color: #666; font-size: 16px; margin-bottom: 10px;">Welcome, <strong>${user.fullName}</strong>!</p>
             <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Your account has been verified successfully. You can now login to your account.</p>
-            <a href="${frontendURL}/login?verified=true&email=${user.email}" 
+            <a href="${frontendURL}login?verified=true&email=${user.fullName}" 
                style="background: #28a745; color: white; padding: 12px 24px; 
                       text-decoration: none; border-radius: 5px; display: inline-block; 
                       font-weight: bold; transition: background-color 0.3s;"
@@ -204,9 +189,8 @@ router.get("/verify-email/:token", async (req, res) => {
     console.error("Verify error:", err);
 
     const frontendURL =
-      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app";
+      process.env.FRONTEND_URL || "https://leadway-frontend-yqdj.vercel.app/";
 
-    // Return HTML error page instead of JSON
     res.status(400).send(`
       <html>
         <head>
@@ -217,7 +201,7 @@ router.get("/verify-email/:token", async (req, res) => {
           <div style="background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto;">
             <h2 style="color: #d32f2f; margin-bottom: 20px;">❌ Verification Failed</h2>
             <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Invalid or expired verification token. Please request a new verification email.</p>
-            <a href="${frontendURL}/login?error=invalid_token" 
+            <a href="${frontendURL}login?error=invalid_token" 
                style="background: #007bff; color: white; padding: 12px 24px; 
                       text-decoration: none; border-radius: 5px; display: inline-block; 
                       font-weight: bold;">
@@ -229,15 +213,13 @@ router.get("/verify-email/:token", async (req, res) => {
     `);
   }
 });
-// ============ LOGIN/SIGNIN ===================
+
 router.post(
   "/signin",
-
   [
     body("email").isEmail().withMessage("Please enter a valid email"),
     body("password").notEmpty().withMessage("Password is required"),
   ],
-
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -247,31 +229,26 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      // Check if user exists
       const existingUser = await User.findOne({ email });
       if (!existingUser) {
         return res.status(400).json({ message: "Invalid email or password" });
       }
 
-      // Check if user is verified
       if (!existingUser.verified) {
         return res.status(401).json({
           message: "Please verify your email before logging in.",
-          needsVerification: true, // Optional: helps frontend handle this case
+          needsVerification: true,
         });
       }
 
-      // Compare passwords
       const isMatch = await bcrypt.compare(password, existingUser.password);
       if (!isMatch) {
         return res.status(400).json({ message: "Invalid email or password" });
       }
 
-      // Generate Tokens with error handling
       try {
         const { accessToken, refreshToken } = generateTokens(existingUser);
 
-        // Send successful response
         res.status(200).json({
           message: "Login Successful",
           accessToken,
@@ -279,7 +256,7 @@ router.post(
           user: {
             id: existingUser._id,
             fullName: existingUser.fullName,
-            email: existingUser.email, // Added email for frontend use
+            email: existingUser.email,
           },
         });
       } catch (tokenError) {
@@ -295,17 +272,14 @@ router.post(
   },
 );
 
-// ================= REFRESH NEW TOKEN ==================
 router.post("/refresh", (req, res) => {
-  // This route will be hit when a client (frontend) sends a refresh request.
-  const { refreshToken } = req.body; // Destructures refreshToken from the request body.
+  const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return res.status(401).json({ message: "No refresh token provided" }); // If no token is sent → respond with 401 Unauthorized.
+    return res.status(401).json({ message: "No refresh token provided" });
   }
 
   jwt.verify(
-    // checks if: The token is valid (not expired, not tampered with). It was signed with your REFRESH_TOKEN_SECRET. If verification succeeds, it gives you the payload (userData).
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
     (err, userData) => {
@@ -313,31 +287,27 @@ router.post("/refresh", (req, res) => {
         return res.status(403).json({ message: "Invalid refresh token" });
       }
 
-      // Generate new access Token
       const accessToken = jwt.sign(
-        // Creates a brand new access token with:
-        { id: userData.id, email: userData.email }, // id + email from the refresh token.
+        { id: userData.id, email: userData.email },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN },
       );
 
-      res.json({ accessToken }); // Sends the new token back to the client. Client replaces the old expired access token with this new one.
+      res.json({ accessToken });
     },
   );
-}); // So, the refresh route is like a bridge to keep users logged in without forcing them to type their email/password every time the short access token dies.
+});
 
-// ==================== //  PROTECTED ROUTE : ONLY ACCESSIBLE WITH A VALID ACCESS TOKEN ===============
 router.get("/profile", authenticate, async (req, res) => {
   try {
-    // req.user is attached by the authenticate middleware after verifying token
-    const userData = await User.findById(req.user.id).select("-password"); // exclude password
+    const userData = await User.findById(req.user.id).select("-password");
     if (!userData) {
       return res.status(404).json({ message: "User not found" });
     }
 
     res.status(200).json({
       message: "Protected route accessed",
-      user: userData, // sends user info to frontend
+      user: userData,
     });
   } catch (err) {
     console.error(err);
@@ -346,18 +316,3 @@ router.get("/profile", authenticate, async (req, res) => {
 });
 
 module.exports = router;
-
-//Here’s the breakdown:
-//The profile route itself isn’t “compulsory” for the backend to function, but it serves as an example of a protected route.
-//The real purpose is: only users who have valid credentials (i.e., have signed up and have an account in your database) and a valid access token can access this route.
-
-//So in practice:
-
-// User signs up → account is saved in the database.
-// User signs in → backend verifies email/password and issues access + refresh tokens.
-// User tries to access /profile (or any protected route) → authenticate middleware checks the token:
-// If valid → request continues, user data is returned.
-// If invalid/expired → access denied (401/403).
-// This ensures: Nobody can access protected data without logging in , The backend can safely serve user-specific info.
-
-// Think of /profile as a template for any route you want to protect, like /dashboard, /settings, /orders, etc.
