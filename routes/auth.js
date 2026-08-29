@@ -73,17 +73,23 @@ router.post(
         process.env.BACKEND_URL || "https://leadway-backend-1.onrender.com"
       }/api/auth/verify-email/${token}`;
 
-      await transporter.sendMail({
-        from: `"Leadway" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Verify Your Email",
-        html: `
-          <h2>Welcome, ${fullName}!</h2>
-          <p>Verify your email address to complete the signup and login into your account.</p>
-          <p>This link <b>expires in 1 hour</b>.</p>
-          <p>Press <a href="${verificationUrl}">here</a> to proceed.</p>
-        `,
-      });
+      // Send verification email, but don't fail the signup if this errors
+      try {
+        await transporter.sendMail({
+          from: `"Leadway" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "Verify Your Email",
+          html: `
+            <h2>Welcome, ${fullName}!</h2>
+            <p>Verify your email address to complete the signup and login into your account.</p>
+            <p>This link <b>expires in 1 hour</b>.</p>
+            <p>Press <a href="${verificationUrl}">here</a> to proceed.</p>
+          `,
+        });
+        console.log("Verification email sent to:", email);
+      } catch (emailErr) {
+        console.error("Failed to send verification email:", emailErr);
+      }
 
       res.status(201).json({
         message:
